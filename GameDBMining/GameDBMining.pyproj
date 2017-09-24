@@ -12,6 +12,9 @@
     <OutputPath>.</OutputPath>
     <Name>GameDBMining</Name>
     <RootNamespace>GameDBMining</RootNamespace>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <InterpreterPath>D:\InstalledPrograms\Anaconda3\python.exe</InterpreterPath>
+    <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -23,6 +26,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="GameDBMining.py" />
+    <Compile Include="v0.py" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
