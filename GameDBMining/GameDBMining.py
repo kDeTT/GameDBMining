@@ -1,5 +1,6 @@
 import pandas as pd
 import math
+import matplotlib.pyplot as plt
 
 # Configurando avisos do Pandas
 pd.options.mode.chained_assignment = None
@@ -242,6 +243,54 @@ print("numero-criticos: ", len(dados_outlier_numerocriticos))
 print("avaliacao-usuarios: ", len(dados_outlier_avaliacaousuarios))
 print("numero-usuarios: ", len(dados_outlier_numerousuarios))
 print()
+
+# Gera histograma com a distribuição de vendas dos jogos
+plt.hist(dados["vendas"])
+plt.show()
+
+# Gera gráfico de barras das vendas por plataforma
+dados[["plataforma", "vendas"]].groupby(["plataforma"]).sum().plot.bar()
+plt.show()
+
+# Gera gráfico de barras das vendas por genero
+dados[["genero", "vendas"]].groupby(["genero"]).sum().plot.bar()
+plt.show()
+
+# Gera gráfico de barras para a quantidade de jogos de tiro por plataforma
+dados_shooter = dados.loc[dados["genero"] == "Shooter"]
+dados_shooter[["plataforma", "genero"]].groupby(["plataforma"]).count().plot.bar()
+plt.show()
+
+# Gera gráfico de barras para a quantidade de jogos de ação por plataforma
+dados_action = dados.loc[dados["genero"] == "Action"]
+dados_action[["plataforma", "genero"]].groupby(["plataforma"]).count().plot.bar()
+plt.show()
+
+# Gera gráfico de barras para a quantidade de jogos por genero da editora Activision
+dados_activision = dados.loc[dados["editora"] == "Activision"]
+dados_activision[["editora", "genero"]].groupby(["genero"]).count().plot.bar()
+plt.show()
+
+# Gera gráfico de barras para a quantidade de jogos por plataforma da editora Activision
+dados_activision = dados.loc[dados["editora"] == "Activision"]
+dados_activision[["editora", "plataforma"]].groupby(["plataforma"]).count().plot.bar()
+plt.show()
+
+# Gera boxplot dos atributos numéricos
+plt.boxplot(dados["vendas"])
+plt.show()
+
+plt.boxplot(dados["avaliacao-criticos"])
+plt.show()
+
+plt.boxplot(dados["numero-criticos"])
+plt.show()
+
+plt.boxplot(dados["avaliacao-usuarios"])
+plt.show()
+
+plt.boxplot(dados["numero-usuarios"])
+plt.show()
 
 # Liberando variáveis temporárias
 del dados_filter1, dados_filter1_clean, dados_filter2, dados_filter2_mean, dados_filter3, dados_filter3_mean, game, i
