@@ -2,6 +2,10 @@ import pandas as pd
 import math
 import matplotlib.pyplot as plt
 
+from sklearn import preprocessing
+from sklearn import cluster
+from sklearn import metrics
+
 # Configurando avisos do Pandas
 pd.options.mode.chained_assignment = None
 
@@ -295,3 +299,58 @@ plt.show()
 # Liberando variáveis temporárias
 del dados_filter1, dados_filter1_clean, dados_filter2, dados_filter2_mean, dados_filter3, dados_filter3_mean, game, i
 del dados_filter4, q1, q3, iqr, min, max
+
+# Parte referente ao Trabalho-02
+
+# Criando um arquivo de dados alternativo 2 com base no original excluindo todas as instâncias com pelo menos um atributo ausente
+dados2 = pd.read_csv("dados-07.csv",
+                    dtype={ 
+                            "nome":"category",
+                            "plataforma":"category",
+                            "genero":"category",
+                            "editora":"category",
+                            "lancamento":"category",
+                            "fabricante":"category",
+                            "vendas":"float",
+                            "avaliacao-criticos":"float",
+                            "numero-criticos":"float",
+                            "numero-usuarios":"float"
+                           }
+                    )
+
+dados2_clean = dados2.dropna()
+
+# Convertendo o atributo "avaliacao-usuarios" para tipo float
+dados2_clean["avaliacao-usuarios"] = pd.to_numeric(dados2_clean["avaliacao-usuarios"])
+
+# Convertendo o atributo "lancamento" para datetime e selecionando apenas o mes
+dados2_clean["lancamento"] = pd.to_datetime(dados2_clean["lancamento"])
+dados2_clean["lancamento"] = dados2_clean["lancamento"].dt.month
+
+del dados2_clean["nome"], dados2_clean["plataforma"], dados2_clean["genero"]
+
+# Selecionando as atributos categóricos
+dados2_clean_category = dados2_clean.select_dtypes(["category"]).columns
+
+# Transforma os dados categóricos de acordo com os indices gerados
+dados2_clean[dados2_clean_category] = dados[dados2_clean_category].apply(lambda x: x.cat.codes)
+
+# Normalizando os dados
+scaler = preprocessing.MinMaxScaler()
+dados2_clean_norm = scaler.fit_transform(dados2_clean)
+
+kmeans = cluster.KMeans(n_clusters=8)
+dados2_clean_kmeans = kmeans.fit_predict(dados2_clean_norm)
+print("KMeans-Silueta: ", metrics.silhouette_score(dados2_clean_norm, dados2_clean_kmeans, metric="euclidean"))
+
+dados2_clean_kmeans = pd.DataFrame(dados2_clean_kmeans, columns=["group"])
+
+dt1 = dados2.dropna()
+dt1 = dt1[["nome", "plataforma", "genero"]]
+
+dt1 = dt1.reset_index(drop=True)
+dados2_clean = dados2_clean.reset_index(drop=True)
+dados2_clean_kmeans = dados2_clean_kmeans.reset_index(drop=True)
+
+new_dataframe = [dt1, dados2_clean, dados2_clean_kmeans]
+dados2_groups = pd.concat(new_dataframe, axis=1)
