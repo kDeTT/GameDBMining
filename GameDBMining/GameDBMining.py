@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import math
 import matplotlib.pyplot as plt
 
@@ -31,6 +32,9 @@ dados = pd.read_csv("dados-07.csv",
 dados["avaliacao-usuarios"]= dados["avaliacao-usuarios"].replace({"tbd":"-999"})
 dados["avaliacao-usuarios"] = dados["avaliacao-usuarios"].astype(float)
 dados["avaliacao-usuarios"] = dados["avaliacao-usuarios"].replace({-999:math.nan})
+
+dados["lancamento"] = dados["lancamento"].replace({"TBA":math.nan})
+dados["lancamento"] = dados["lancamento"].replace({"Cancelled":math.nan})
 
 print()
 print("============================== ANTES DOS TRATAMENTOS ==============================")
@@ -147,7 +151,7 @@ dados["avaliacao-criticos"] = dados_filter1["avaliacao-criticos"]
 dados["numero-usuarios"] = dados_filter1["numero-usuarios"]
 dados["avaliacao-usuarios"] = dados_filter1["avaliacao-usuarios"]
 
-# Removendo outliers:
+# Identificando outliers:
 
 # vendas
 dados_outlier_vendas = dados[["nome", "vendas"]]
@@ -213,6 +217,22 @@ max = q3 + (iqr * 1.5)
 dados_outlier_numerousuarios["numero-usuarios"] = dados_filter4[(dados_filter4 > min) & (dados_filter4  < max)]
 dados_outlier_numerousuarios = dados_outlier_numerousuarios.loc[dados_outlier_numerousuarios["numero-usuarios"].isnull()]
 dados_outlier_numerousuarios = dados_outlier_numerousuarios["nome"]
+
+# Gera boxplot dos atributos numéricos
+plt.boxplot(dados["vendas"])
+plt.show()
+
+plt.boxplot(dados["avaliacao-criticos"])
+plt.show()
+
+plt.boxplot(dados["numero-criticos"])
+plt.show()
+
+plt.boxplot(dados["avaliacao-usuarios"])
+plt.show()
+
+plt.boxplot(dados["numero-usuarios"])
+plt.show()
 
 print()
 print("============================== APÓS OS TRATAMENTOS ==============================")
@@ -280,77 +300,87 @@ dados_activision = dados.loc[dados["editora"] == "Activision"]
 dados_activision[["editora", "plataforma"]].groupby(["plataforma"]).count().plot.bar()
 plt.show()
 
-# Gera boxplot dos atributos numéricos
-plt.boxplot(dados["vendas"])
-plt.show()
-
-plt.boxplot(dados["avaliacao-criticos"])
-plt.show()
-
-plt.boxplot(dados["numero-criticos"])
-plt.show()
-
-plt.boxplot(dados["avaliacao-usuarios"])
-plt.show()
-
-plt.boxplot(dados["numero-usuarios"])
-plt.show()
-
 # Liberando variáveis temporárias
 del dados_filter1, dados_filter1_clean, dados_filter2, dados_filter2_mean, dados_filter3, dados_filter3_mean, game, i
 del dados_filter4, q1, q3, iqr, min, max
 
-# Parte referente ao Trabalho-02
+#============================== Parte referente ao Trabalho-02 ==============================#
 
-# Criando um arquivo de dados alternativo 2 com base no original excluindo todas as instâncias com pelo menos um atributo ausente
-dados2 = pd.read_csv("dados-07.csv",
-                    dtype={ 
-                            "nome":"category",
-                            "plataforma":"category",
-                            "genero":"category",
-                            "editora":"category",
-                            "lancamento":"category",
-                            "fabricante":"category",
-                            "vendas":"float",
-                            "avaliacao-criticos":"float",
-                            "numero-criticos":"float",
-                            "numero-usuarios":"float"
-                           }
-                    )
+# Removendo outliers
+dados_without_outlier = dados.drop(dados_outlier_vendas.index)
+dados_without_outlier = dados.drop(dados_outlier_avaliacaocriticos.index)
+dados_without_outlier = dados.drop(dados_outlier_numerocriticos.index)
+dados_without_outlier = dados.drop(dados_outlier_avaliacaousuarios.index)
+dados_without_outlier = dados.drop(dados_outlier_numerousuarios.index)
 
-dados2_clean = dados2.dropna()
+# Removendo nulos se houver
+dados_clean = dados_without_outlier.dropna()
 
-# Convertendo o atributo "avaliacao-usuarios" para tipo float
-dados2_clean["avaliacao-usuarios"] = pd.to_numeric(dados2_clean["avaliacao-usuarios"])
-
-# Convertendo o atributo "lancamento" para datetime e selecionando apenas o mes
-dados2_clean["lancamento"] = pd.to_datetime(dados2_clean["lancamento"])
-dados2_clean["lancamento"] = dados2_clean["lancamento"].dt.month
-
-del dados2_clean["nome"], dados2_clean["plataforma"], dados2_clean["genero"]
+# Removendo atributos para o agrupamento
+del dados_clean["nome"], dados_clean["plataforma"], dados_clean["genero"], dados_clean["lancamento"]
 
 # Selecionando as atributos categóricos
-dados2_clean_category = dados2_clean.select_dtypes(["category"]).columns
+dados_clean_category = dados_clean.select_dtypes(["category"]).columns
 
-# Transforma os dados categóricos de acordo com os indices gerados
-dados2_clean[dados2_clean_category] = dados[dados2_clean_category].apply(lambda x: x.cat.codes)
+# Transforma os dados categóricos para numéricos
+dados_clean[dados_clean_category] = dados[dados_clean_category].apply(lambda x: x.cat.codes)
 
 # Normalizando os dados
 scaler = preprocessing.MinMaxScaler()
-dados2_clean_norm = scaler.fit_transform(dados2_clean)
+dados_clean_norm = scaler.fit_transform(dados_clean)
 
-kmeans = cluster.KMeans(n_clusters=8)
-dados2_clean_kmeans = kmeans.fit_predict(dados2_clean_norm)
-print("KMeans-Silueta: ", metrics.silhouette_score(dados2_clean_norm, dados2_clean_kmeans, metric="euclidean"))
+# Agrupamento utilizando o kmeans
+clusters = 8
+kmeans = cluster.KMeans(n_clusters=clusters)
+dados_clean_kmeans = kmeans.fit_predict(dados_clean_norm)
 
-dados2_clean_kmeans = pd.DataFrame(dados2_clean_kmeans, columns=["group"])
+# Avaliando o agrupamento com o índice de silhueta
+print("KMeans-Silueta: ", metrics.silhouette_score(dados_clean_norm, dados_clean_kmeans, metric="euclidean"))
 
-dt1 = dados2.dropna()
+# Recuperando as informações em um Dataframe
+dados_clean_kmeans = pd.DataFrame(dados_clean_kmeans, columns=["group"])
+
+dt1 = dados_without_outlier.dropna()
 dt1 = dt1[["nome", "plataforma", "genero"]]
 
 dt1 = dt1.reset_index(drop=True)
-dados2_clean = dados2_clean.reset_index(drop=True)
-dados2_clean_kmeans = dados2_clean_kmeans.reset_index(drop=True)
+dados_clean = dados_clean.reset_index(drop=True)
+dados_clean_kmeans = dados_clean_kmeans.reset_index(drop=True)
 
-new_dataframe = [dt1, dados2_clean, dados2_clean_kmeans]
-dados2_groups = pd.concat(new_dataframe, axis=1)
+new_dataframe = [dt1, dados_clean, dados_clean_kmeans]
+
+# Dados agrupados
+dados_groups = pd.concat(new_dataframe, axis=1)
+
+# Gera um gráfico com a quantidade de jogos por plataforma para cada grupo
+for i in range(0, clusters):
+    dados_group_i = dados_groups.loc[dados_groups["group"] == i]
+    dados_group_i[["plataforma", "nome"]].groupby(["plataforma"]).count().plot.bar()
+    plt.show()
+    
+# Gera um gráfico com a quantidade de jogos de cada gênero para cada grupo
+for i in range(0, clusters):
+    dados_group_i = dados_groups.loc[dados_groups["group"] == i]
+    dados_group_i[["genero", "nome"]].groupby(["genero"]).count().plot.bar()
+    plt.show()
+
+# Gera um histograma com as vendas dos jogos de cada grupo
+for i in range(0, clusters):
+    dados_group_i = dados_groups.loc[dados_groups["group"] == i]
+    plt.hist(dados_group_i["vendas"])
+    plt.show()
+
+# Gera um gráfico com as vendas por plataforma para cada grupo
+for i in range(0, clusters):
+    dados_group_i = dados_groups.loc[dados_groups["group"] == i]
+    dados_group_i[["plataforma", "vendas"]].groupby(["plataforma"]).sum().plot.bar()
+    plt.show()
+
+# Gera um gráfico com as vendas por gênero para cada grupo
+for i in range(0, clusters):
+    dados_group_i = dados_groups.loc[dados_groups["group"] == i]
+    dados_group_i[["genero", "vendas"]].groupby(["genero"]).sum().plot.bar()
+    plt.show()
+
+# Liberando variáveis temporárias
+del dados_clean, dados_clean_category, dados_clean_norm, clusters, dados_clean_kmeans, dt1, new_dataframe, i, dados_group_i
