@@ -268,6 +268,10 @@ print("avaliacao-usuarios: ", len(dados_outlier_avaliacaousuarios))
 print("numero-usuarios: ", len(dados_outlier_numerousuarios))
 print()
 
+print()
+print("#============================== COM OUTLIERS ==============================#")
+print()
+
 # Gera histograma com a distribuição de vendas dos jogos
 plt.hist(dados["vendas"])
 plt.show()
@@ -313,6 +317,42 @@ dados_without_outlier = dados.drop(dados_outlier_numerocriticos.index)
 dados_without_outlier = dados.drop(dados_outlier_avaliacaousuarios.index)
 dados_without_outlier = dados.drop(dados_outlier_numerousuarios.index)
 
+print()
+print("#============================== SEM OUTLIERS ==============================#")
+print()
+
+# Gera histograma com a distribuição de vendas dos jogos
+plt.hist(dados_without_outlier["vendas"])
+plt.show()
+
+# Gera gráfico de barras das vendas por plataforma
+dados_without_outlier[["plataforma", "vendas"]].groupby(["plataforma"]).sum().plot.bar()
+plt.show()
+
+# Gera gráfico de barras das vendas por genero
+dados_without_outlier[["genero", "vendas"]].groupby(["genero"]).sum().plot.bar()
+plt.show()
+
+# Gera gráfico de barras para a quantidade de jogos de tiro por plataforma
+dados_shooter = dados_without_outlier.loc[dados_without_outlier["genero"] == "Shooter"]
+dados_shooter[["plataforma", "genero"]].groupby(["plataforma"]).count().plot.bar()
+plt.show()
+
+# Gera gráfico de barras para a quantidade de jogos de ação por plataforma
+dados_action = dados_without_outlier.loc[dados_without_outlier["genero"] == "Action"]
+dados_action[["plataforma", "genero"]].groupby(["plataforma"]).count().plot.bar()
+plt.show()
+
+# Gera gráfico de barras para a quantidade de jogos por genero da editora Activision
+dados_activision = dados_without_outlier.loc[dados_without_outlier["editora"] == "Activision"]
+dados_activision[["editora", "genero"]].groupby(["genero"]).count().plot.bar()
+plt.show()
+
+# Gera gráfico de barras para a quantidade de jogos por plataforma da editora Activision
+dados_activision = dados_without_outlier.loc[dados_without_outlier["editora"] == "Activision"]
+dados_activision[["editora", "plataforma"]].groupby(["plataforma"]).count().plot.bar()
+plt.show()
+
 # Removendo nulos se houver
 dados_clean = dados_without_outlier.dropna()
 
@@ -330,10 +370,10 @@ scaler = preprocessing.MinMaxScaler()
 dados_clean_norm = scaler.fit_transform(dados_clean)
 
 # Agrupamento utilizando o kmeans
-clusters = 8
+clusters = 2
 kmeans = cluster.KMeans(n_clusters=clusters)
 dados_clean_kmeans = kmeans.fit_predict(dados_clean_norm)
-
+    
 # Avaliando o agrupamento com o índice de silhueta
 print("KMeans-Silueta: ", metrics.silhouette_score(dados_clean_norm, dados_clean_kmeans, metric="euclidean"))
 
@@ -343,6 +383,8 @@ dados_clean_kmeans = pd.DataFrame(dados_clean_kmeans, columns=["group"])
 dt1 = dados_without_outlier.dropna()
 dt1 = dt1[["nome", "plataforma", "genero"]]
 
+dados_clean[dados_clean_category] = dados[dados_clean_category]
+
 dt1 = dt1.reset_index(drop=True)
 dados_clean = dados_clean.reset_index(drop=True)
 dados_clean_kmeans = dados_clean_kmeans.reset_index(drop=True)
@@ -351,6 +393,14 @@ new_dataframe = [dt1, dados_clean, dados_clean_kmeans]
 
 # Dados agrupados
 dados_groups = pd.concat(new_dataframe, axis=1)
+
+print()
+print("#============================== AGRUPAMENTO ==============================#")
+print()
+
+dados_clean = dados_without_outlier.dropna()
+dados_clean[["plataforma", "nome"]].groupby(["plataforma"]).count().plot.bar()
+plt.show()
 
 # Gera um gráfico com a quantidade de jogos por plataforma para cada grupo
 for i in range(0, clusters):
